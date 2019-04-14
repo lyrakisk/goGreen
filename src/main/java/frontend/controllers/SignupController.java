@@ -4,9 +4,13 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXPasswordField;
 import com.jfoenix.controls.JFXTextField;
+import frontend.gui.Events;
 import frontend.gui.InputValidation;
 import frontend.gui.Main;
 import frontend.gui.StageSwitcher;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -16,6 +20,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.util.Duration;
+import tools.Requests;
 
 import java.io.IOException;
 import java.net.URL;
@@ -72,10 +78,22 @@ public class SignupController implements Initializable {
     private Label line3;
 
     @FXML
+    private Label line4;
+
+    @FXML
+    private Label line5;
+
+    @FXML
     private Label signup;
 
     @FXML
     private Label goGreen;
+
+    @FXML
+    private Label lblSaved;
+
+    @FXML
+    private Label lblTotalUsers;
 
     @FXML
     private JFXComboBox secQuestion;
@@ -87,24 +105,55 @@ public class SignupController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        JFXTextField[] nameFields = new JFXTextField[2];
+
+        lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+        lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10000), ae -> {
+            lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+            lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+
+        //create arrays for fields to clean up code usage in Input Validation
+        JFXTextField[] nameFields = new JFXTextField[2]; //first & last name
+        JFXPasswordField[] passFields = new JFXPasswordField[2]; // passwords
         nameFields[0] = firstNameField;
         nameFields[1] = lastNameField;
+        passFields[0] = passwordField;
+        passFields[1] = confirmPasswordField;
+
+        JFXTextField[] primaryFields = new JFXTextField[2]; //email && username
+        primaryFields[0] = emailField;
+        primaryFields[1] = usernameField;
+
         background.fitWidthProperty().bind(graphics.widthProperty());
         background.fitHeightProperty().bind(graphics.heightProperty());
         signupButton.setOnAction(e -> {
             try {
-                InputValidation.signUpValidate(nameFields, usernameField,
-                        emailField, passwordField,
-                        confirmPasswordField, ageField,
-                        getSecurityQuestionid(), secAnswer, mainPane);
+                boolean succeeded = InputValidation.signUpValidate(nameFields, primaryFields,
+                        passFields, ageField, getSecurityQuestionid(), secAnswer);
+
+                //Reset fields if everything went alright
+                if (succeeded) {
+                    firstNameField.setText(null);
+                    lastNameField.setText(null);
+                    emailField.setText(null);
+                    ageField.setText(null);
+                    usernameField.setText(null);
+                    passwordField.setText(null);
+                    confirmPasswordField.setText(null);
+                    secAnswer.setText(null);
+                }
+
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
         });
-        loginForward.addEventHandler(MouseEvent.MOUSE_PRESSED, event ->
-                StageSwitcher.signInUpSwitch(Main.getPrimaryStage(), Main.getSignIn()
-        ));
+        loginForward.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            StageSwitcher.signInUpSwitch(Main.getPrimaryStage(), Main.getSignIn());
+        });
         try {
             setFonts();
         } catch (IOException e) {
@@ -116,17 +165,21 @@ public class SignupController implements Initializable {
             }
         });
         fillSecurityQuestions(secQuestion);
+
+        //add required events
+        Events.addLoginHover(signupButton);
     }
 
     /**
      * Gets the security question ID.
+     *
      * @return - the ID of the question
      */
     public int getSecurityQuestionid() {
         if (secQuestion.getValue() == null) {
             return -1;
         }
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 8; i++) {
             if (secQuestion.getValue().toString().equals(secQuestions.get(i))) {
                 return i;
             }
@@ -137,14 +190,14 @@ public class SignupController implements Initializable {
     private void fillSecurityQuestions(JFXComboBox secQuestion) {
         secQuestions = FXCollections.observableArrayList(
                 "What was your childhood nickname?",
-                        "In what city did you meet your spouse/significant other?",
-                        "What is the name of your favorite childhood friend?",
-                        "What street did you live on in third grade?",
-                        "What is your oldest sibling’s birthday month and year?"
-                                + " (e.g., January 1900)",
-                        "What is the middle name of your youngest child?",
-                        "What is your oldest sibling's middle name?",
-                        "What school did you attend for sixth grade?"
+                "In what city did you meet your spouse/significant other?",
+                "What is the name of your favorite childhood friend?",
+                "What street did you live on in third grade?",
+                "What is your oldest sibling’s birthday month and year?"
+                        + " (e.g., January 1900)",
+                "What is the middle name of your youngest child?",
+                "What is your oldest sibling's middle name?",
+                "What school did you attend for sixth grade?"
         );
         secQuestion.setItems(secQuestions);
 
@@ -158,6 +211,10 @@ public class SignupController implements Initializable {
         line1.setFont(Main.getReenieBeanie(40));
         line2.setFont(Main.getReenieBeanie(40));
         line3.setFont(Main.getReenieBeanie(50));
+        line4.setFont(Main.getReenieBeanie(40));
+        line5.setFont(Main.getReenieBeanie(40));
+        lblSaved.setFont(Main.getReenieBeanie(30));
+        lblTotalUsers.setFont(Main.getReenieBeanie(30));
         signup.setFont(Main.getRobotoThin(45));
         loginForward.setFont(Main.getRobotoThin(45));
         signupButton.setFont(Main.getRobotoThin(28));

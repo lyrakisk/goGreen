@@ -25,8 +25,11 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Circle;
 import tools.ActivityQueries;
 import tools.DateUnit;
 import tools.Requests;
@@ -39,11 +42,11 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class HomepageController implements Initializable {
-    private static User loggedUser;
+    private static User thisUser;
+    private static LoginDetails thisLoginDetails;
     private static AnchorPane mainCopy;
     private static AnchorPane headerCopy;
     private static NotificationPopup popup;
-    private static LoginDetails loginDetails;
     private List<JFXButton> leaderboards = new ArrayList<>();
 
 
@@ -54,7 +57,9 @@ public class HomepageController implements Initializable {
     @FXML
     private AnchorPane headerPane;
     @FXML
-    private Label lblName;
+    private Label lblFirstName;
+    @FXML
+    private Label lblLastName;
     @FXML
     private Label goGreen;
     @FXML
@@ -69,6 +74,14 @@ public class HomepageController implements Initializable {
     private Label lblFriends;
     @FXML
     private Label lblAverageCarbon;
+    @FXML
+    private Label lblWelcome;
+    @FXML
+    private Label lblRank;
+    @FXML
+    private Label lblProgress;
+    @FXML
+    private JFXButton btnRefresh;
     @FXML
     private JFXButton btnProfile;
     @FXML
@@ -95,9 +108,72 @@ public class HomepageController implements Initializable {
     private PieChart chartMyActivities;
     @FXML
     private BarChart barChart;
+    @FXML
+    private BarChart weekChart;
+    @FXML
+    private Circle circleProfile;
+
+    /**.
+     * Update the first name for the label containing the full name of the user
+     * @param newFirstName - new first name value
+     */
+    public void updateFirstName(String newFirstName) {
+        lblFirstName.setText(newFirstName);
+    }
+
+    /**.
+     * Update the last name for the label containing the full name of the user
+     * @param newLastName - new last name value
+     */
+    public void updateLastName(String newLastName) {
+        lblLastName.setText(newLastName);
+    }
+
+    /**.
+     * Update the user information on the homepage
+     * @param loginDetails - current login details (assigned to user)
+     */
+    public void updateUser(LoginDetails loginDetails) {
+        //update the user and his login details
+        thisUser = Requests.instance.loginRequest(loginDetails);
+
+        //update the field values on the homepage dashboard
+        circleProfile.setFill(new ImagePattern(
+                new Image("avatars/" + thisUser.getAvatar() + ".jpg")));
+        lblFirstName.setText(thisUser.getFirstName().toUpperCase());
+        lblLastName.setText(thisUser.getLastName().toUpperCase());
+        lblEmail.setText(thisUser.getEmail());
+        lblLevel.setText(Integer.toString(thisUser.getProgress().getLevel()));
+        lblRank.setText(Integer.toString(Requests.instance.getUserRanking(thisLoginDetails)));
+        lblProgress.setText(thisUser.getProgress().pointsNeeded()
+                + " Points left");
+        lblActivities.setText(Integer.toString(thisUser.getActivities().size()));
+        lblFriends.setText(Integer.toString(thisUser.getFriends().size()));
+        lblYourCarbon.setText("You have saved " + thisUser.getTotalCarbonSaved()
+                + " kg of CO2 so far");
+        lblAverageCarbon.setText("Average person saved "
+                + ((int)(Requests.instance.getAverageCO2Saved() * 1000)) / 1000.0
+                + " kg of CO2 so far");
+
+        //update user information for the homepage charts
+        fillPieChart(thisUser, chartMyActivities);
+        fillBarChart("Your CO2 Savings", barChart);
+        fillWeekChart(thisUser, weekChart);
+    }
+
+    private void updateLeaderboards() {
+        fillLeaderboards(5, tableTop5);
+        fillLeaderboards(10, tableTop10);
+        fillLeaderboards(25, tableTop25);
+        fillLeaderboards(50, tableTop50);
+        fillLeaderboards(100, tableTop100);
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        Events.homepageController = this;
+        EditProfilePopUpController.homepageController = this;
+
         popup = new NotificationPopup();
         //add buttons to leader boards list
         leaderboards.add(btnTop5);
@@ -106,14 +182,8 @@ public class HomepageController implements Initializable {
         leaderboards.add(btnTop50);
         leaderboards.add(btnTop100);
 
-        Events.addLeaderboards(leaderboards);
-
-        //Populate leaderboards with entries
-        fillLeaderboards(5, tableTop5);
-        fillLeaderboards(10, tableTop10);
-        fillLeaderboards(25, tableTop25);
-        fillLeaderboards(50, tableTop50);
-        fillLeaderboards(100, tableTop100);
+        //update leaderboards upon clicking refresh button
+        btnRefresh.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> updateLeaderboards());
 
         //switch leaderboards upon clicking
         btnTop5.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
@@ -132,35 +202,20 @@ public class HomepageController implements Initializable {
             hideLeaderboards(tableTop100, tableTop5, tableTop10, tableTop25, tableTop50);
         });
 
-        //addFonts
-        try {
-            goGreen.setFont(Main.getReenieBeanie(100));
-        } catch (IOException e) {
-            System.out.println("Fonts not found");
-        }
+        //update profile information and leaderboards upon initialising page
+        updateUser(thisLoginDetails);
+        updateLeaderboards();
 
-        //profile information
-        lblName.setText(loggedUser.getFirstName().toUpperCase() + " "
-                + loggedUser.getLastName().toUpperCase());
-        lblEmail.setText(loggedUser.getEmail());
-        lblLevel.setText(Integer.toString(loggedUser.getProgress().getLevel()));
-        lblActivities.setText(Integer.toString(loggedUser.getActivities().size()));
-        lblFriends.setText(Integer.toString(loggedUser.getFriends().size()));
-        lblYourCarbon.setText("You have saved " + loggedUser.getTotalCarbonSaved()
-                + " kg of CO2 so far");
-        lblAverageCarbon.setText("Average person saved "
-                + ((int)(Requests.instance.getAverageCO2Saved() * 1000)) / 1000.0
-                + " kg of CO2 so far");
+        Events.addLeaderboards(leaderboards);
+        Events.addJfxButtonHover(btnProfile);
+        Events.addJfxButtonHover(btnRefresh);
+
         btnProfile.setOnAction(event -> StageSwitcher.sceneSwitch(Main.getPrimaryStage(),
                 Main.getProfilePage()));
 
-        //charts on the right
-        fillPieChart(loggedUser, chartMyActivities);
-        fillBarChart("Your CO2 Savings", barChart);
-
-        Events.addJfxButtonHover(btnProfile);
-
         try {
+            goGreen.setFont(Main.getReenieBeanie(100));
+            lblWelcome.setFont(Main.getReenieBeanie(40));
             NotificationPanelController.addNotificationPanel(headerPane, mainPane);
             StageSwitcher.homeDrawer = NavPanel.addNavPanel(mainPane, headerPane, menu);
         } catch (IOException e) {
@@ -179,16 +234,16 @@ public class HomepageController implements Initializable {
     private static void fillPieChart(User user, PieChart chart) {
         ActivityQueries queries = new ActivityQueries(user.getActivities());
 
+        chart.getData().clear();
         chart.setData(FXCollections.observableArrayList(
-                new PieChart.Data("Food",
+                new PieChart.Data("FOOD",
                         queries.filterActivities("Food").size()),
-                new PieChart.Data("Transportation",
+                new PieChart.Data("TRANSPORTATION",
                         queries.filterActivities("Transportation").size()),
-                new PieChart.Data("Household",
+                new PieChart.Data("HOUSEHOLD",
                         queries.filterActivities("Household").size())
         ));
     }
-
 
     /**
      * Gives style to the tree view.
@@ -229,7 +284,7 @@ public class HomepageController implements Initializable {
 
     private ObservableList<UserItem> getTableData(int top) {
         ObservableList<UserItem> friendsList = FXCollections.observableArrayList();
-        List<User> users = Requests.instance.getTopUsers(loginDetails, top);
+        List<User> users = Requests.instance.getTopUsers(thisLoginDetails, top);
 
         for (Object user : users) {
             User thisUser = (User) user;
@@ -306,12 +361,12 @@ public class HomepageController implements Initializable {
      * @param series - the series to add data to
      */
     public void populateBarChart(XYChart.Series series) {
-        ActivityQueries thisQuery = new ActivityQueries(loggedUser.getActivities());
-        series.getData().add(new XYChart.Data("Today",
+        ActivityQueries thisQuery = new ActivityQueries(thisUser.getActivities());
+        series.getData().add(new XYChart.Data("TODAY",
                 thisQuery.getTotalCO2Saved(DateUnit.TODAY)));
-        series.getData().add(new XYChart.Data("Last Week",
+        series.getData().add(new XYChart.Data("LAST WEEK",
                 thisQuery.getTotalCO2Saved(DateUnit.WEEK)));
-        series.getData().add(new XYChart.Data("Last Month",
+        series.getData().add(new XYChart.Data("LAST MONTH",
                 thisQuery.getTotalCO2Saved(DateUnit.MONTH)));
     }
 
@@ -319,8 +374,18 @@ public class HomepageController implements Initializable {
         XYChart.Series series = new XYChart.Series();
         series.setName(title);
         populateBarChart(series);
+        chart.getData().clear();
         chart.getData().addAll(series);
         chart.setLegendVisible(false);
+    }
+
+    private static void fillWeekChart(User user, BarChart barChart) {
+        ActivityQueries queries = new ActivityQueries(user.getActivities());
+        XYChart.Series series = new XYChart.Series();
+        series.getData().addAll(queries.getWeeklyCO2Savings());
+        barChart.getData().clear();
+        barChart.getData().addAll(series);
+        barChart.setLegendVisible(false);
     }
 
     private static void hideLeaderboards(JFXTreeTableView shown,
@@ -340,17 +405,17 @@ public class HomepageController implements Initializable {
      * @param passedUser Logged in current user
      */
     public static void setUser(User  passedUser) {
-        loggedUser = passedUser;
+        thisUser = passedUser;
 
     }
 
     /**
      * Sets the login details and starts the notification thread.
-     * @param passedloginDetails - login details from sign in form
+     * @param passedLoginDetails - login details from sign in form
      */
-    public static void setLoginDetails(LoginDetails passedloginDetails) {
-        loginDetails = passedloginDetails;
-        SyncUserTask syncUserTask = new SyncUserTask(Requests.instance, loginDetails, loggedUser);
+    public static void setLoginDetails(LoginDetails passedLoginDetails) {
+        thisLoginDetails = passedLoginDetails;
+        SyncUserTask syncUserTask = new SyncUserTask(Requests.instance, thisLoginDetails, thisUser);
         NotificationThread notificationThread = new NotificationThread(syncUserTask);
         notificationThread.start();
     }

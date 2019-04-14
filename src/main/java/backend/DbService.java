@@ -21,11 +21,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.DateUtils;
 
 import java.lang.reflect.Field;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -100,20 +100,18 @@ public class DbService {
      */
     public User grantAccess(String identifier, String password) {
         User user = getUser(identifier);
-
         if (user == null || user.getLoginStreak() == maxLoginStreak) {
             return null;
         }
-
-
         if (passwordEncoder().matches(password, user.getPassword())) {
             // Update last login date to current (server) time
-            user.setLastLoginDate(Calendar.getInstance().getTime());
+            user.setLastLoginDate(DateUtils.instance.dateToday());
             user.resetLoginStreak();
             return user;
         }
 
         user.incLoginStreak();
+        users.save(user);
         return null;
     }
 
@@ -194,16 +192,16 @@ public class DbService {
             requestingUser.addFriend(acceptingUser.getUsername());
             acceptingUser.addFriend(requestingUser.getUsername());
             acceptingUser.deleteFriendRequest(requester);
-            
+
             // Update changes in database
             users.save(requestingUser);
             users.save(acceptingUser);
 
             //checks if an achievement is completed by adding a friend
-            addAchievement(acceptingUser , AchievementsLogic.checkOther(acceptingUser),
-                     Calendar.getInstance().getTime());
-            addAchievement(requestingUser , AchievementsLogic.checkOther(requestingUser),
-                    Calendar.getInstance().getTime());
+            addAchievement(acceptingUser, AchievementsLogic.checkOther(acceptingUser),
+                    DateUtils.instance.dateToday());
+            addAchievement(requestingUser, AchievementsLogic.checkOther(requestingUser),
+                    DateUtils.instance.dateToday());
 
             return true;
         } else {
@@ -220,8 +218,12 @@ public class DbService {
      */
     public boolean addFriendRequest(String senderUsername, String receiverUsername) {
         User sender = getUserByUsername(senderUsername);
-        User receiver = getUserByUsername(receiverUsername);
 
+        if (sender != null && sender.getFriendRequests().contains(receiverUsername)) {
+            acceptFriendRequest(receiverUsername, senderUsername);
+        }
+
+        User receiver = getUserByUsername(receiverUsername);
         if (sender != null && receiver != null) {
             receiver.newFriendRequest(sender.getUsername());
             // Update only the User that received the friend request
@@ -277,19 +279,26 @@ public class DbService {
         updateTotalCo2SavedStatistics(returned);
 
         // check if an achievement is completed by this activity
-        addAchievement(returned , AchievementsLogic.checkFoodActivity(
-                returned, activity) , activity.getDate());
-        addAchievement(returned , AchievementsLogic.checkTranspostActivity(
-                returned, activity) , activity.getDate());
-        addAchievement(returned , AchievementsLogic.checkTranspostActivity1(
-                returned, activity) , activity.getDate());
+        addAchievement(returned, AchievementsLogic.checkFoodActivity(
+                returned, activity), activity.getDate());
+        addAchievement(returned, AchievementsLogic.checkTranspostActivity(
+                returned, activity), activity.getDate());
+        addAchievement(returned, AchievementsLogic.checkTranspostActivity1(
+                returned, activity), activity.getDate());
+        addAchievement(returned , AchievementsLogic.checkotherActivities(
+                returned , activity ), activity.getDate());
 
         // adds points to the user
-        addCO2Points(returned , activity.getCarbonSaved());
+        addCO2Points(returned, activity.getCarbonSaved());
 
         //checks the users level
-        addAchievement(returned , AchievementsLogic.checkLevel(returned),
-                Calendar.getInstance().getTime());
+        addAchievement(returned, AchievementsLogic.checkLevel(returned),
+                DateUtils.instance.dateToday());
+
+        //checks the leaderboards
+        addAchievement(returned , checkLeaderboards(returned) , DateUtils.instance.dateToday());
+
+        //returned.getProgress().hasChangedCheck();
 
         addUser(returned);
 
@@ -397,7 +406,12 @@ public class DbService {
      * @return the updated User
      */
     public User editProfile(User user, String fieldName, Object newValue) {
+        System.out.println(fieldName);
         try {
+            if (fieldName.equals("password")) {
+                newValue = encodePassword((String) newValue);
+                System.out.println(newValue);
+            }
             Field field = user.getClass().getDeclaredField(fieldName);
             field.setAccessible(true);
             field.set(user, newValue);
@@ -405,7 +419,7 @@ public class DbService {
         } catch (IllegalAccessException | NoSuchFieldException e) {
             return null;
         }
-        addUser(user);
+        users.save(user);
         return user;
     }
 
@@ -459,8 +473,8 @@ public class DbService {
         userStatistics.save(allStatistics);
 
         //checks the users level
-        addAchievement(user , AchievementsLogic.checkLevel(user) ,
-                 Calendar.getInstance().getTime());
+        addAchievement(user, AchievementsLogic.checkLevel(user),
+                DateUtils.instance.dateToday());
 
     }
 
@@ -482,7 +496,7 @@ public class DbService {
      * this method checks every achievements if its already in the List, if not add it.
      *
      * @param user current user
-     * @param ids   achievements to check
+     * @param ids  achievements to check
      * @param date date to add
      */
     public void addAchievement(User user, ArrayList<Integer> ids, Date date) {
@@ -513,20 +527,11 @@ public class DbService {
 
                 String idstring = Integer.toString(id);
 
-                System.out.println(idstring + "looking for this ");
-
                 List<Achievement> list = getAchievements();
 
                 user.getProgress().addPoints(list.get(id).getBonus());
 
-                System.out.println("Added: id " + userAchievement.getId()
-                        + " list.get(id).getBonus() points "
-                        +
-                        " now have " + user.getProgress().getAchievements().size()
-                        +
-                        " competed" + "this user now has "
-                        +
-                        user.getProgress().getPoints() + " points");
+                //user.getProgress().hasChangedCheck();
             }
         }
 
@@ -536,20 +541,23 @@ public class DbService {
     /**
      * addes to the points the amount of co2 save.
      * every one co2 unite is worth 1 point
-     * @param user user to add points to
+     *
+     * @param user        user to add points to
      * @param carbonsaved co2 saved
      */
-    public void addCO2Points(User user , double carbonsaved) {
+    public void addCO2Points(User user, double carbonsaved) {
 
-        System.out.println("In addCO2Points   going to add " + carbonsaved);
+        //user.getProgress().hasChangedCheck();
 
         user.getProgress().setPoints(user.getProgress().getPoints() + carbonsaved * 300);
 
 
     }
 
-    /**.
+    /**
+     * .
      * Gets the rank in terms of CO2 saved of the specified User
+     *
      * @param identifier - Identifier of the User (either e-mail or username)
      * @return - Rank of the User (integer)
      */
@@ -569,4 +577,42 @@ public class DbService {
                 User.class) // Search in User collection
                 + 1; // Add 1 (to count in the User itself)
     }
+
+    /**
+     * for leader boards achievement logic.
+     *
+     * @param user user to check
+     * @return array of ids
+     */
+    public ArrayList<Integer> checkLeaderboards(User user) {
+
+        ArrayList<Integer> results = new ArrayList();
+
+        int rank = getUserRank(user.getUsername());
+
+        //Reach the top ten 26
+        if (rank <= 10) {
+            results.add(26);
+        }
+        //Reach the top five Users id 28
+        if (rank <= 5) {
+            results.add(27);
+        }
+        //Reach third place on the leader board id 18
+        if (rank <= 3) {
+            results.add(18);
+        }
+        //Reach second place on the leader board id 11
+        if (rank <= 2) {
+            results.add(11);
+        }
+        //Reach the top of the leader board id 10
+        if (rank == 1) {
+            results.add(10);
+        }
+
+        return results;
+
+    }
+
 }

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import com.jfoenix.controls.JFXButton?>
 <?import com.jfoenix.controls.JFXDrawer?>
 <?import com.jfoenix.controls.JFXHamburger?>
 <?import com.jfoenix.controls.JFXTextField?>
 <?import com.jfoenix.controls.JFXTreeTableView?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.Cursor?>
 <?import javafx.scene.chart.BarChart?>
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.NumberAxis?>
@@ -17,11 +19,11 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane fx:id="main" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="900.0" prefWidth="963.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="frontend.controllers.FriendspageController">
+<AnchorPane fx:id="main" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="900.0" prefWidth="1800.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="frontend.controllers.FriendspageController">
     <children>
       <AnchorPane layoutY="198.0" prefHeight="266.0" prefWidth="963.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="198.0">
          <children>
-            <HBox fx:id="dataPane" prefHeight="267.0" prefWidth="963.0" spacing="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <HBox fx:id="dataPane" layoutX="131.0" prefHeight="267.0" prefWidth="1539.0" spacing="80.0" AnchorPane.leftAnchor="131.0" AnchorPane.rightAnchor="130.0" AnchorPane.topAnchor="0.0">
                <children>
                   <BarChart fx:id="todayChart">
                     <xAxis>
@@ -50,36 +52,47 @@
                </children></HBox>
          </children>
       </AnchorPane>
-      <AnchorPane fx:id="headerPane" layoutX="-7.0" prefHeight="137.0" prefWidth="966.0" style="-fx-background-color: #379B1E #379B1E;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <AnchorPane fx:id="headerPane" layoutX="-7.0" prefHeight="137.0" prefWidth="966.0" style="-fx-background-color: green;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Label fx:id="goGreen" alignment="BASELINE_CENTER" layoutX="357.0" layoutY="32.0" text="GoGreen" textAlignment="CENTER" textFill="WHITE" AnchorPane.leftAnchor="357.0" AnchorPane.rightAnchor="344.0" AnchorPane.topAnchor="32.0">
+            <Label fx:id="lblGoGreen" alignment="BASELINE_CENTER" layoutX="357.0" layoutY="32.0" text="GoGreen" textAlignment="CENTER" textFill="WHITE" AnchorPane.leftAnchor="582.0" AnchorPane.rightAnchor="582.0" AnchorPane.topAnchor="32.0">
                <font>
                   <Font size="60.0" />
                </font>
             </Label>
-            <JFXHamburger fx:id="menu" layoutX="22.0" layoutY="22.0" />
-            <Button fx:id="addFriendButton" layoutX="712.0" layoutY="26.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="210.0" style="-fx-background-color: #4286f4;" text="+ Add Friend" textFill="#363f9a" AnchorPane.bottomAnchor="78.0" AnchorPane.rightAnchor="41.0" AnchorPane.topAnchor="26.0">
+            <JFXHamburger fx:id="menu" layoutX="26.0" layoutY="59.0">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></JFXHamburger>
+            <Button fx:id="addFriendButton" layoutX="1409.0" layoutY="63.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="210.0" style="-fx-background-color: #4286f4;" text="+ Add Friend" textFill="#363f9a" AnchorPane.bottomAnchor="41.0" AnchorPane.rightAnchor="181.0" AnchorPane.topAnchor="63.0">
                <font>
                   <Font size="18.0" />
                </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
             </Button>
          </children>
       </AnchorPane>
-      <JFXTreeTableView fx:id="friendsPane" layoutX="318.0" layoutY="557.0" prefHeight="343.0" prefWidth="327.0" style="-fx-border-color: white; -fx-text-fill: #e80000;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="318.0" AnchorPane.rightAnchor="318.0" AnchorPane.topAnchor="557.0">
+      <JFXTreeTableView fx:id="friendsPane" layoutX="318.0" layoutY="621.0" prefHeight="279.0" prefWidth="1164.0" style="-fx-border-color: white; -fx-text-fill: #e80000;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="318.0" AnchorPane.rightAnchor="318.0" AnchorPane.topAnchor="621.0">
          <columnResizePolicy>
             <TreeTableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
          </columnResizePolicy>
       </JFXTreeTableView>
-      <AnchorPane fx:id="centerPane" layoutX="305.0" layoutY="459.0" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="20.0" prefWidth="336.0" AnchorPane.leftAnchor="305.0" AnchorPane.rightAnchor="322.0">
+      <AnchorPane fx:id="centerPane" layoutX="305.0" layoutY="460.0" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="109.0" prefWidth="1173.0" AnchorPane.leftAnchor="305.0" AnchorPane.rightAnchor="322.0">
          <children>
-            <Label alignment="BASELINE_CENTER" layoutX="86.0" layoutY="14.0" text="Friends" underline="true" AnchorPane.bottomAnchor="35.0" AnchorPane.leftAnchor="86.0" AnchorPane.rightAnchor="78.0" AnchorPane.topAnchor="14.0">
+            <Label alignment="BASELINE_CENTER" layoutX="86.0" prefHeight="56.0" prefWidth="1009.0" text="Friends" underline="true" AnchorPane.bottomAnchor="101.0" AnchorPane.leftAnchor="86.0" AnchorPane.rightAnchor="78.0" AnchorPane.topAnchor="0.0">
                <font>
                   <Font size="40.0" />
                </font>
             </Label>
+            <JFXButton fx:id="btnRefresh" layoutX="518.0" layoutY="80.0" opacity="0.75" prefHeight="31.0" prefWidth="145.0" style="-fx-background-color: green;" text="Refresh page" AnchorPane.bottomAnchor="48.0" AnchorPane.leftAnchor="518.0" AnchorPane.rightAnchor="510.0" AnchorPane.topAnchor="80.0">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+            </JFXButton>
          </children>
       </AnchorPane>
-      <JFXDrawer fx:id="addFriendDrawer" defaultDrawerSize="292.0" direction="TOP" layoutX="675.0" layoutY="72.0" prefHeight="248.0" prefWidth="319.0" AnchorPane.rightAnchor="6.0" AnchorPane.topAnchor="61.0">
+      <JFXDrawer fx:id="addFriendDrawer" defaultDrawerSize="292.0" direction="TOP" layoutX="675.0" layoutY="93.0" prefHeight="216.0" prefWidth="322.0" AnchorPane.rightAnchor="132.0" AnchorPane.topAnchor="93.0">
          <children>
             <VBox prefHeight="200.0" prefWidth="319.0">
                <children>

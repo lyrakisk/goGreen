@@ -5,15 +5,21 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 import data.User;
 import frontend.gui.Dialog;
+import frontend.gui.Events;
 import frontend.gui.Main;
 import frontend.gui.StageSwitcher;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import javafx.util.Duration;
 import tools.Requests;
 
 import java.io.IOException;
@@ -21,45 +27,48 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class QuestionnaireController implements Initializable {
-
     private static User thisUser;
 
     @FXML
+    private Label lblLine1;
+    @FXML
+    private Label lblLine2;
+    @FXML
+    private Label lblLine3;
+    @FXML
+    private Label line4;
+    @FXML
+    private Label line5;
+    @FXML
+    private Label lblSaved;
+    @FXML
+    private Label lblTotalUsers;
+    @FXML
+    private Label goGreen;
+    @FXML
     private ImageView background;
-
     @FXML
     private AnchorPane graphics;
-
     @FXML
     private AnchorPane mainPane;
-
     @FXML
     private JFXComboBox houseHoldNo;
-
     @FXML
     private JFXTextField textElectricity;
-
     @FXML
     private JFXTextField textOil;
-
     @FXML
     private JFXTextField textCarUsage;
-
     @FXML
     private JFXComboBox carSizes;
-
     @FXML
     private JFXComboBox meatAndDairyOptions;
-
     @FXML
     private JFXComboBox locallyProducedFoodOptions;
-
     @FXML
     private JFXComboBox organicOptions;
-
     @FXML
     private JFXComboBox processedOptions;
-
     @FXML
     private JFXButton submitButton;
 
@@ -93,6 +102,33 @@ public class QuestionnaireController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+        lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10000), ae -> {
+            lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+            lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+
+        //add required events
+        Events.addJfxButtonHover(submitButton);
+
+        //setup fonts
+        try {
+            goGreen.setFont(Main.getReenieBeanie(100));
+            lblLine1.setFont(Main.getReenieBeanie(40));
+            lblLine2.setFont(Main.getReenieBeanie(40));
+            lblLine3.setFont(Main.getReenieBeanie(50));
+            line4.setFont(Main.getReenieBeanie(40));
+            line5.setFont(Main.getReenieBeanie(40));
+            lblSaved.setFont(Main.getReenieBeanie(30));
+            lblTotalUsers.setFont(Main.getReenieBeanie(30));
+        } catch (IOException exp) {
+            System.out.println("Something went wrong");
+        }
 
         // Helps to Keep the image scaling in check
 

@@ -10,6 +10,7 @@ import data.BuyNonProcessedFood;
 import data.BuyOrganicFood;
 import data.EatVegetarianMeal;
 import data.InstallSolarPanels;
+import data.LoginDetails;
 import data.LowerHomeTemperature;
 import data.RecyclePaper;
 import data.RecyclePlastic;
@@ -18,6 +19,8 @@ import data.UseBusInsteadOfCar;
 import data.UseTrainInsteadOfCar;
 import data.User;
 import frontend.controllers.ActivitiesController;
+import frontend.controllers.HomepageController;
+import frontend.controllers.ProfilePageController;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -37,16 +40,20 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import tools.ActivityQueries;
 import tools.DateUnit;
+import tools.DateUtils;
+import tools.Requests;
 
 import java.io.IOException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 
 public class Events {
+
+    public static HomepageController homepageController;
+    public static ProfilePageController profilePageController;
 
     /**
      * .
@@ -94,6 +101,19 @@ public class Events {
         });
     }
 
+    /**.
+     * Add hover events for the login/sign-up pages
+     * @param button - button to add events to
+     */
+    public static void addLoginHover(JFXButton button) {
+        button.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
+            button.setUnderline(true);
+        });
+        button.addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
+            button.setUnderline(false);
+        });
+    }
+
     /**
      * .
      * Add hover event for navigation panel buttons
@@ -123,7 +143,7 @@ public class Events {
             button.setOpacity(0.75);
         });
     }
-    
+
     /**
      * .
      * Add food activities to the user upon clicking
@@ -133,29 +153,31 @@ public class Events {
      * @param loggedUser    user to update
      * @param activityTable table to set history to
      */
-    public static void addFoodActivity(AnchorPane pane, int type,
+    public static void addFoodActivity(AnchorPane pane, int type, LoginDetails loginDetails,
                                        User loggedUser, TableView<Activity> activityTable) {
         pane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (type == 1) {
                 EatVegetarianMeal meal = new EatVegetarianMeal();
-                meal.performActivity(loggedUser);
+                meal.performActivity(loggedUser, Requests.instance);
             } else if (type == 2) {
                 BuyOrganicFood food = new BuyOrganicFood();
-                food.performActivity(loggedUser);
+                food.performActivity(loggedUser, Requests.instance);
             } else if (type == 3) {
                 BuyLocallyProducedFood food = new BuyLocallyProducedFood();
-                food.performActivity(loggedUser);
+                food.performActivity(loggedUser, Requests.instance);
             } else {
                 if (type == 4) {
                     BuyNonProcessedFood food = new BuyNonProcessedFood();
-                    food.performActivity(loggedUser);
+                    food.performActivity(loggedUser, Requests.instance);
                 }
             }
             ObservableList<Activity> activities = ActivitiesController.getActivities(loggedUser);
             activityTable.setItems(activities);
+
             try {
                 ActivitiesController.popup("Popup", "Activity performed successfully!",
                         "sucess", 0);
+                homepageController.updateUser(loginDetails);
             } catch (IOException exp) {
                 System.out.println("Something went wrong.");
             }
@@ -174,7 +196,7 @@ public class Events {
      * @param activityTable activity history table
      */
     public static void addTransportActivity(AnchorPane pane, JFXTextField input, Label verify,
-                                            int type, User loggedUser,
+                                            int type, LoginDetails loginDetails, User loggedUser,
                                             TableView<Activity> activityTable) {
         pane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             int distance = -1;
@@ -200,19 +222,20 @@ public class Events {
             if (type == 1) {
                 UseBikeInsteadOfCar travel = new UseBikeInsteadOfCar();
                 travel.setKilometres(distance);
-                travel.performActivity(loggedUser);
+                travel.performActivity(loggedUser, Requests.instance);
             } else if (type == 2) {
                 UseBusInsteadOfCar travel = new UseBusInsteadOfCar();
                 travel.setKilometres(distance);
-                travel.performActivity(loggedUser);
+                travel.performActivity(loggedUser, Requests.instance);
             } else if (type == 3) {
                 UseTrainInsteadOfCar travel = new UseTrainInsteadOfCar();
                 travel.setKilometres(distance);
-                travel.performActivity(loggedUser);
+                travel.performActivity(loggedUser, Requests.instance);
             }
 
             ObservableList<Activity> activities = ActivitiesController.getActivities(loggedUser);
             activityTable.setItems(activities);
+            homepageController.updateUser(loginDetails);
             try {
                 ActivitiesController.popup("Popup", "Activity performed successfully!",
                         "sucess", 0);
@@ -242,7 +265,8 @@ public class Events {
      * @param activityTable - table to set history to
      */
     public static void addHouseholdActivity(AnchorPane pane, Label installedPanels,
-                                            Label loweredTemp, int type, User loggedUser,
+                                            Label loweredTemp, int type, LoginDetails loginDetails,
+                                            User loggedUser,
                                             TableView<Activity> activityTable) {
         pane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (type == 1) {
@@ -257,7 +281,7 @@ public class Events {
                             + ChronoUnit.DAYS.between(loggedUser
                                     .getSimilarActivities(panels)
                                     .get(0).getDate().toInstant(),
-                            Calendar.getInstance().getTime().toInstant())
+                            DateUtils.instance.dateToday().toInstant())
                             * installed.getDailyCarbonSaved());
                     alert.showAndWait();
                 } else {
@@ -280,7 +304,7 @@ public class Events {
                     if (result.isPresent()) {
                         System.out.println("kwh: " + result.get());
                         panels.setKwhSavedPerYear(Integer.parseInt(result.get()));
-                        panels.performActivity(loggedUser);
+                        panels.performActivity(loggedUser, Requests.instance);
                         installedPanels.setVisible(true);
 
                         //show popup upon performing an activity
@@ -313,7 +337,7 @@ public class Events {
                         if (result.isPresent()) {
                             System.out.println("Degrees: " + result.get());
                             temp.setDegrees(Integer.parseInt(result.get()));
-                            temp.performActivity(loggedUser);
+                            temp.performActivity(loggedUser, Requests.instance);
                             loweredTemp.setVisible(true);
 
                             //show popup upon performing an activity
@@ -330,6 +354,7 @@ public class Events {
             }
             ObservableList<Activity> activities = ActivitiesController.getActivities(loggedUser);
             activityTable.setItems(activities);
+            homepageController.updateUser(loginDetails);
         });
     }
 
@@ -343,7 +368,7 @@ public class Events {
      * @param activityTable - the history table
      */
     public static void addRecyclingActivity(AnchorPane pane, Label lblPlastic,
-                                            Label lblPaper, int type,
+                                            Label lblPaper, int type, LoginDetails loginDetails,
                                             User loggedUser, TableView<Activity> activityTable) {
         pane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (type == 1) {
@@ -357,7 +382,7 @@ public class Events {
                                     + " you can try again tomorrow!");
                     alert.showAndWait();
                 } else {
-                    plastic.performActivity(loggedUser);
+                    plastic.performActivity(loggedUser, Requests.instance);
                     lblPlastic.setVisible(true);
 
                     //show popup upon performing an activity
@@ -380,7 +405,7 @@ public class Events {
                                         + " you can try again tomorrow!");
                         alert.showAndWait();
                     } else {
-                        paper.performActivity(loggedUser);
+                        paper.performActivity(loggedUser, Requests.instance);
                         lblPaper.setVisible(true);
 
                         //show popup upon performing an activity
@@ -395,6 +420,7 @@ public class Events {
             }
             ObservableList<Activity> activities = ActivitiesController.getActivities(loggedUser);
             activityTable.setItems(activities);
+            homepageController.updateUser(loginDetails);
         });
     }
 
@@ -427,27 +453,6 @@ public class Events {
         label.addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
             label.setUnderline(false);
             label.setOpacity(0.75);
-        });
-    }
-
-    /**
-     * .
-     * Display all activities
-     *
-     * @param checkBox  - checkbox to add event to
-     * @param checkList - list containing category filtering
-     * @param radioList - list containing date filtering
-     */
-    public static void showAllFilters(JFXCheckBox checkBox, List<JFXCheckBox> checkList,
-                                      List<JFXRadioButton> radioList) {
-        checkBox.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-            for (JFXCheckBox filter : checkList) {
-                filter.setDisable(checkBox.isSelected());
-            }
-            for (JFXRadioButton filter : radioList) {
-                filter.setDisable(checkBox.isSelected());
-            }
-            checkBox.setDisable(false);
         });
     }
 
@@ -513,6 +518,10 @@ public class Events {
                 categoryFilters.add(filter.getText());
             }
         }
+        //if there are no filters selected, return all activities
+        if (categoryFilters.isEmpty()) {
+            return activities;
+        }
         return activityQueries.filterActivitiesByCategories(categoryFilters);
     }
 
@@ -541,8 +550,8 @@ public class Events {
         ActivityQueries activityQueries = new ActivityQueries(activities);
 
         if (!min.getText().equals("") && !max.getText().equals("")) {
-            double minValue = Integer.parseInt(min.getText());
-            double maxValue = Integer.parseInt(max.getText());
+            double minValue = Double.parseDouble(min.getText());
+            double maxValue = Double.parseDouble(max.getText());
             if (minValue > maxValue) {
                 max.setUnFocusColor(Color.rgb(255, 0, 0));
                 max.setFocusColor(Color.rgb(255, 0, 0));
@@ -555,7 +564,16 @@ public class Events {
                 min.setFocusColor(Color.rgb(0, 128, 0));
                 return activityQueries.filterActivitiesByCO2Saved(minValue, maxValue);
             }
+        } else if (!min.getText().equals("") && max.getText().equals("")) {
+            double minValue = Double.parseDouble(min.getText());
+            return activityQueries.filterActivitiesByCO2Saved(minValue, true);
+        } else {
+            if (min.getText().equals("") && !max.getText().equals("")) {
+                double maxValue = Double.parseDouble(max.getText());
+                return activityQueries.filterActivitiesByCO2Saved(maxValue, false);
+            }
         }
+
         return activities;
     }
 
@@ -609,5 +627,36 @@ public class Events {
             });
         }
     }
+
+    /**
+     * .
+     * Reset the avatar list to normal when selecting a profile picture
+     *
+     * @param avatarList       - list containing all profile pictures
+     * @param thisLoginDetails - the user that updates his profile picture
+     */
+    public static void unCheckImages(List<ImageView> avatarList, User user,
+                                     LoginDetails thisLoginDetails) {
+        for (ImageView avatar : avatarList) {
+            avatar.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                avatar.setImage(new Image("avatars/13.jpg"));
+
+                //update user on the client side & send request to update user on the server side
+                user.setAvatar(avatar.getId());
+                Requests.instance.editProfile(thisLoginDetails, "avatar", avatar.getId());
+
+                for (ImageView other : avatarList) {
+                    if (other != avatar) {
+                        other.setImage(new Image("avatars/" + other.getId() + ".jpg"));
+                    }
+                }
+
+                //update user information on profile page & homepage once avatar was changed
+                profilePageController.updateUser(thisLoginDetails);
+                homepageController.updateUser(thisLoginDetails);
+            });
+        }
+    }
+
 }
 

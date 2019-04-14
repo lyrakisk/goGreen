@@ -8,6 +8,9 @@ import frontend.gui.General;
 import frontend.gui.InputValidation;
 import frontend.gui.Main;
 import frontend.gui.StageSwitcher;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -19,6 +22,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
+import tools.Requests;
 
 import java.io.IOException;
 import java.net.URL;
@@ -61,25 +66,53 @@ public class LoginController implements Initializable {
     private Label line3;
 
     @FXML
+    private Label line4;
+
+    @FXML
+    private Label line5;
+
+    @FXML
     private Label login;
 
     @FXML
     private Label forgotPass;
 
+    @FXML
+    private Label lblSaved;
+
+    @FXML
+    private Label lblTotalUsers;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+        lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10000), ae -> {
+            lblSaved.setText(Math.floor(Requests.instance.getTotalCO2Saved()) + " KG");
+            lblTotalUsers.setText(Requests.instance.getTotalUsers() + " Users");
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+
         loginButton.setOnAction(e -> {
             try {
-                InputValidation.signInValidate(usernameField,
-                        passwordField, mainPane);
+                boolean valid = InputValidation.signInValidate(usernameField, passwordField);
+                if (valid) {
+                    usernameField.setText(null);
+                    passwordField.setText(null);
+                }
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
-            usernameField.setText(null);
-            passwordField.setText(null);
+
         });
 
+        //add required filters
         Events.addHoverOnFilter(forgotPass);
+        Events.addLoginHover(loginButton);
+
         forgotPass.setOnMouseClicked(e -> {
             try {
                 setForgotPassStage();
@@ -126,6 +159,10 @@ public class LoginController implements Initializable {
         line1.setFont(Main.getReenieBeanie(40));
         line2.setFont(Main.getReenieBeanie(40));
         line3.setFont(Main.getReenieBeanie(50));
+        line4.setFont(Main.getReenieBeanie(40));
+        line5.setFont(Main.getReenieBeanie(40));
+        lblSaved.setFont(Main.getReenieBeanie(30));
+        lblTotalUsers.setFont(Main.getReenieBeanie(30));
         login.setFont(Main.getRobotoThin(45));
         signupForward.setFont(Main.getRobotoThin(45));
         loginButton.setFont(Main.getRobotoThin(28));
